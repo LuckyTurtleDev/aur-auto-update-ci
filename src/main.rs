@@ -1,13 +1,15 @@
 use anyhow::{bail, Context};
-use basic_toml;
 use clap::Parser;
+use core::sync::atomic::AtomicBool;
+use gix::progress::Discard;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_json;
 use srcinfo::Srcinfo;
 use std::{
 	ffi::OsStr,
-	fs, io,
-	io::Read,
+	fs,
+	fs::create_dir_all,
+	io,
 	path::{Path, PathBuf},
 };
 
@@ -15,8 +17,6 @@ mod github;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 struct Index {
-	#[serde(default)]
-	i: u8,
 	#[serde(default)]
 	tag: String,
 }
@@ -39,10 +39,23 @@ impl Tags for Source {
 	}
 }
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Check {
+	#[serde(default = "default_pkgver_regex")]
+	pkgver_regex: String,
+}
+
+fn default_pkgver_regex() -> String {
+	r#"^[0-9]+(\.[0-9]+)+$"#.to_owned()
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Config {
+struct Config {
 	source: Source,
+	#[serde(default)]
+	check: Check,
 }
 
 #[derive(Debug, Parser)]
@@ -58,6 +71,10 @@ struct Opt {
 	/// Does not commit or push changes
 	#[clap(short = 'd', long)]
 	dryrun: bool,
+
+	/// force run, even if no update is aviable
+	#[clap(short = 'f', long)]
+	force: bool,
 }
 
 fn main() {
@@ -97,9 +114,21 @@ where
 
 fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	println!("==> process package: {}", package);
-	let dir = package;
+	println!("-> clone package");
+	let (dir, _repo) = if opt.local {
+		let repo = gix::open_opts(package, Default::default())?;
+		(PathBuf::from(package), repo)
+	} else {
+		let dir = PathBuf::from("aur").join(package);
+		create_dir_all("aur")?;
+		let mut prepare_fetch = gix::prepare_clone(format!("ssh://aur@aur.archlinux.org/{package}.git"), &dir)?;
+		let (mut prepare_checkout, _) = prepare_fetch.fetch_then_checkout(Discard, &AtomicBool::new(false))?;
+		let (repo, _) = prepare_checkout.main_worktree(Discard, &AtomicBool::new(false))?;
+		(dir, repo)
+	};
+
 	println!("-> load .index.json");
-	let file_content = match fs::read_to_string(PathBuf::from(dir).join(".index.json")) {
+	let file_content = match fs::read_to_string(dir.join(".index.json")) {
 		Ok(value) => value,
 		Err(err) => {
 			if err.kind() != io::ErrorKind::NotFound {
@@ -111,13 +140,13 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	let index: Index = serde_json::from_str(&file_content).with_context(|| "failed to prase .index.json")?;
 
 	println!("-> load config.toml");
-	let config: Config = basic_toml::from_str(
-		&fs::read_to_string(PathBuf::from(dir).join("ci.toml")).with_context(|| "failed to open `ci.toml`")?,
-	)
-	.with_context(|| "failed to prase `ci.toml`")?;
+	let config: Config =
+		basic_toml::from_str(&fs::read_to_string(dir.join("ci.toml")).with_context(|| "failed to open `ci.toml`")?)
+			.with_context(|| "failed to prase `ci.toml`")?;
+	let pkgver_regex = Regex::new(&config.check.pkgver_regex).with_context(|| "invaild regex at field \"pkgver_regex\"")?;
 
 	println!("-> load .SRCINFO");
-	let old_pkgver = match fs::read(PathBuf::from(dir).join(".SRCINFO")) {
+	let old_pkgver = match fs::read(dir.join(".SRCINFO")) {
 		Ok(value) => Some(
 			Srcinfo::parse_buf(&*value)
 				.with_context(|| "failed to prase .SRCINFO")?
@@ -135,40 +164,63 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 
 	println!("tags: {tags:?}");
 	let tag = tags.first().expect("no suitable tag found");
-	if &index.tag == tag {
+	if &index.tag == tag && !opt.force {
 		println!("package is already uptodate");
 		return Ok(());
 	}
 
 	println!("-> modify PKGBUILD");
 	let mut pkgbuild = "".to_owned();
-	for line in fs::read_to_string(PathBuf::from(dir).join("PKGBUILD"))
+	for line in fs::read_to_string(dir.join("PKGBUILD"))
 		.with_context(|| "failed to open `PKGBUILD`")?
 		.split('\n')
 	{
 		if line.starts_with("_pkgtag=") {
-			pkgbuild += &format!("_pkgtag={tag}");
+			pkgbuild += &format!("_pkgtag={tag} #auto updated by CI");
 		} else {
 			pkgbuild += line;
 		}
 		pkgbuild += "\n";
 	}
 	pkgbuild.pop(); //avoid adding an additonal newline at file end
-	fs::write(PathBuf::from(dir).join("PKGBUILD"), pkgbuild).with_context(|| "failed to write PKGGBUILD")?;
+	fs::write(dir.join("PKGBUILD"), pkgbuild).with_context(|| "failed to write PKGGBUILD")?;
 
 	println!("-> updpkgsums");
-	run::<_, &str>("updpkgsums", None, dir, true)?;
+	run::<_, &str>("updpkgsums", None, &dir, true)?;
 
 	println!("-> makepkg --printsrcinfo");
-	let stdout = run("makepkg", Some(&["--printsrcinfo"]), dir, false)?;
+	let stdout = run("makepkg", Some(&["--printsrcinfo"]), &dir, false)?;
 	let pkgver = Srcinfo::parse_buf(&*stdout)
 		.with_context(|| "failed to prase .SRCINFO")?
 		.base
 		.pkgver;
-	//TODO: check if pkgver is valid
-	fs::write(PathBuf::from(dir).join(".SRCINFO"), stdout).with_context(|| "failed to write .SRCINFO")?;
+	if !pkgver_regex.is_match(&pkgver) {
+		bail!(format!("pkgver {pkgver:?} does not match regex {pkgver_regex}"));
+	};
+	fs::write(dir.join(".SRCINFO"), stdout).with_context(|| "failed to write .SRCINFO")?;
 
 	println!("-> makepkg");
-	run("makepkg", Some(&["--syncdeps", "--check", "--noarchive"]), dir, true)?;
+	run("makepkg", Some(&["--syncdeps", "--check", "--noarchive"]), &dir, true)?;
+
+	println!("-> write index.json");
+	let mut new_index = index;
+	new_index.tag = tag.to_owned();
+	fs::write(dir.join(".index.json"), serde_json::to_string_pretty(&new_index)?)
+		.with_context(|| "failed to write .index.json")?;
+
+	if !opt.dryrun {
+		println!("-> git commit");
+		//gitoxide has not impl this yet
+		run("git", Some(&["add", ".index.json", "PKGBUILD", ".SRCINFO"]), &dir, true)?;
+		run(
+			"git",
+			Some(&["commit", "--message", &format!("auto update to {pkgver}"), "."]),
+			&dir,
+			true,
+		)?;
+
+		println!("-> git push");
+		run("git", Some(&["push"]), &dir, true)?;
+	}
 	Ok(())
 }
