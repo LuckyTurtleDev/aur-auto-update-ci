@@ -9,6 +9,7 @@ use std::{
 	fs::create_dir_all,
 	io,
 	path::{Path, PathBuf},
+	process::exit,
 };
 
 mod github;
@@ -77,12 +78,18 @@ struct Opt {
 
 fn main() {
 	let opt = Opt::parse();
+	let mut error = 0;
 	for package in &opt.packages {
 		if let Err(err) = progess_package(package, &opt) {
 			eprintln!("{:?}", err.context(format!("ERROR processing package {package}")));
+			error += 1;
 		}
 		println!();
 		println!();
+	}
+	if error != 0 {
+		eprintln!("{error} have occurred");
+		exit(1);
 	}
 }
 
