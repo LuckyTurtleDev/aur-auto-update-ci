@@ -23,6 +23,8 @@ runs:
           /home/aur/.cargo/git/db/
           /home/aur/aur-auto-update-ci/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('/home/aur/aur-auto-update-ci/Cargo.lock') }}
+    - run: chown -R aur:aur /home/aur #fix cache permissions
+      shell: bash
     - run: su aur --command "cargo run --release -- ${{ inputs.packages }}"
       working-directory: /home/aur/aur-auto-update-ci
       shell: bash
