@@ -12,7 +12,7 @@ runs:
         useradd -m -U aur
         echo "aur ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/user
       shell: bash
-    - run: su aur git clone https://github.com/LuckyTurtleDev/aur-auto-update-ci.git
+    - run: su aur --command git clone https://github.com/LuckyTurtleDev/aur-auto-update-ci.git
       working-directory: /home/aur
       shell: bash
     - uses: actions/cache@v3
@@ -23,6 +23,6 @@ runs:
           /home/aur/.cargo/git/db/
           /home/aur/aur-auto-update-ci/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('/home/aur/aur-auto-update-ci/Cargo.lock') }}
-    - run: su aur cargo run --release -- ${{ inputs.packages }}
+    - run: su aur --command cargo run --release -- ${{ inputs.packages }}
       working-directory: /home/aur/aur-auto-update-ci
       shell: bash
