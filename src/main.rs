@@ -118,7 +118,16 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	} else {
 		let dir = PathBuf::from("aur").join(package);
 		create_dir_all("aur")?;
-		run("git",Some(&["clone", &format!("ssh://aur@aur.archlinux.org/{package}.git"), dir.to_str().unwrap()]),".", true)?;
+		run(
+			"git",
+			Some(&[
+				"clone",
+				&format!("ssh://aur@aur.archlinux.org/{package}.git"),
+				dir.to_str().unwrap(),
+			]),
+			".",
+			true,
+		)?;
 		dir
 	};
 
