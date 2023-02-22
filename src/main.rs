@@ -1,7 +1,5 @@
 use anyhow::{bail, Context};
 use clap::Parser;
-use core::sync::atomic::AtomicBool;
-use gix::progress::Discard;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use srcinfo::Srcinfo;
@@ -115,16 +113,13 @@ where
 fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	println!("==> process package: {}", package);
 	println!("-> clone package");
-	let (dir, _repo) = if opt.local {
-		let repo = gix::open_opts(package, Default::default())?;
-		(PathBuf::from(package), repo)
+	let dir = if opt.local {
+		PathBuf::from(package)
 	} else {
 		let dir = PathBuf::from("aur").join(package);
 		create_dir_all("aur")?;
-		let mut prepare_fetch = gix::prepare_clone(format!("ssh://aur@aur.archlinux.org/{package}.git"), &dir)?;
-		let (mut prepare_checkout, _) = prepare_fetch.fetch_then_checkout(Discard, &AtomicBool::new(false))?;
-		let (repo, _) = prepare_checkout.main_worktree(Discard, &AtomicBool::new(false))?;
-		(dir, repo)
+		run("git",Some(&["clone", &format!("ssh://aur@aur.archlinux.org/{package}.git"), dir.to_str().unwrap()]),".", true)?;
+		dir
 	};
 
 	println!("-> load .index.json");
