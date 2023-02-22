@@ -9,7 +9,7 @@ runs:
     - run: sudo pacman -Suy --noconfirm git pacman-contrib rust sudo
       shell: bash
     - run: |
-        useradd -m -U aur \
+        useradd -m -U aur
         echo "aur ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/user
       shell: bash
     - run: su aur git clone https://github.com/LuckyTurtleDev/aur-auto-update-ci.git
