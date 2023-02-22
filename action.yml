@@ -15,6 +15,8 @@ runs:
     - run: su aur --command "git clone https://github.com/LuckyTurtleDev/aur-auto-update-ci.git"
       working-directory: /home/aur
       shell: bash
+    - run: su aur --comand "cp /home/aur/aur-auto-update-ci/aur_known_hosts /home/aur/.ssh/known_hosts"
+      shell: bash
     - uses: actions/cache@v3
       with:
         path: |
