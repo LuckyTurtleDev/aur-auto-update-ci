@@ -6,7 +6,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - run: sudo pacman -Suy --noconfirm git pacman-contrib rust sudo
+    - run: sudo pacman -Suy --noconfirm git openssh pacman-contrib rust sudo
       shell: bash
     - run: |
         useradd -m -U aur
