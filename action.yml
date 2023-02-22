@@ -17,12 +17,12 @@ runs:
       shell: bash
     - uses: actions/cache@v3
         with:
-        path: |
-          /home/aur/.cargo/registry/index/
-          /home/aur/.cargo/registry/cache/
-          /home/aur/.cargo/git/db/
-          /home/aur/aur-auto-update-ci/target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('/home/aur/aur-auto-update-ci/Cargo.lock') }}
+          path: |
+            /home/aur/.cargo/registry/index/
+            /home/aur/.cargo/registry/cache/
+            /home/aur/.cargo/git/db/
+            /home/aur/aur-auto-update-ci/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('/home/aur/aur-auto-update-ci/Cargo.lock') }}
     - run: su aur cargo run --release -- ${{ inputs.packages }}
       working-directory: /home/aur/aur-auto-update-ci
       shell: bash
