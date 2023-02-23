@@ -21,7 +21,10 @@ runs:
       shell: bash
     - run: mkdir /home/aur/.ssh && cp /home/aur/aur-auto-update-ci/aur_known_hosts /home/aur/.ssh/known_hosts
       shell: bash
-    - run: echo "${{ inputs.ssh_key }}" > /home/aur/.ssh/id_ed25519 
+    - run: |
+        echo "-----BEGIN OPENSSH PRIVATE KEY-----" > /home/aur/.ssh/id_ed25519
+        echo "${{ inputs.ssh_key }}"              >> /home/aur/.ssh/id_ed25519
+        echo "-----END OPENSSH PRIVATE KEY-----"  >> /home/aur/.ssh/id_ed25519
       shell: bash
     - uses: actions/cache@v3
       with:
