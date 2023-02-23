@@ -4,7 +4,7 @@ inputs:
     description: 'packages to be updated'
     required: true
   ssh_key:
-    description: "ed25519 ssh key of an aur user with write acces to the aur packages"
+    description: "ed25519 ssh key of an aur user with write acces to the aur packages, without -BEGIN/END OPENSSH PRIVATE KEY- and without newlines"
     required: true
   git_user_name:
     description: "git username for commits"
