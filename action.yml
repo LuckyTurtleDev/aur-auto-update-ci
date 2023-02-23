@@ -3,6 +3,10 @@ inputs:
   packages:
     description: 'packages to be updated'
     required: true
+  ssh_key:
+    description: "ed25519 ssh key of an aur user with write acces to the aur packages"
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -12,10 +16,12 @@ runs:
         useradd -m -U aur
         echo "aur ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/user
       shell: bash
-    - run: su aur --command "git clone https://github.com/LuckyTurtleDev/aur-auto-update-ci.git"
+    - run: git clone https://github.com/LuckyTurtleDev/aur-auto-update-ci.git
       working-directory: /home/aur
       shell: bash
-    - run: su aur --command "mkdir /home/aur/.ssh && cp /home/aur/aur-auto-update-ci/aur_known_hosts /home/aur/.ssh/known_hosts"
+    - run: mkdir /home/aur/.ssh && cp /home/aur/aur-auto-update-ci/aur_known_hosts /home/aur/.ssh/known_hosts
+      shell: bash
+    - run: echo "${{ inputs.ssh_key }}" > /home/aur/.ssh/id_ed25519 
       shell: bash
     - uses: actions/cache@v3
       with:
@@ -25,7 +31,7 @@ runs:
           /home/aur/.cargo/git/db/
           /home/aur/aur-auto-update-ci/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('/home/aur/aur-auto-update-ci/Cargo.lock') }}
-    - run: chown -R aur:aur /home/aur #fix cache permissions
+    - run: chown -R aur:aur /home/aur #fix (cache) permissions
       shell: bash
     - run: su aur --command "cargo run --release -- ${{ inputs.packages }}"
       working-directory: /home/aur/aur-auto-update-ci
