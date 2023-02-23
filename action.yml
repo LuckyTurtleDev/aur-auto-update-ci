@@ -46,8 +46,8 @@ runs:
     - run: chown -R aur:aur /home/aur #fix (cache) permissions
       shell: bash
     - run: |
-        su aur --comand "git config --global user.name ${{ inputs.git_user_name }}"
-        su aur --comand "git config --global user.email ${{ inputs.git_user_name }}"
+        su aur --command "git config --global user.name ${{ inputs.git_user_name }}"
+        su aur --command "git config --global user.email ${{ inputs.git_user_name }}"
       shell: bash
     - run: su aur --command "cargo run --release -- ${{ inputs.packages }}"
       working-directory: /home/aur/aur-auto-update-ci
