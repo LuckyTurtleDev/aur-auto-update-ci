@@ -23,7 +23,7 @@ runs:
       shell: bash
     - run: |
         echo "-----BEGIN OPENSSH PRIVATE KEY-----" > /home/aur/.ssh/id_ed25519
-        echo '${{ inputs.ssh_key }}'              >> /home/aur/.ssh/id_ed25519
+        echo "${{ inputs.ssh_key }}"              >> /home/aur/.ssh/id_ed25519
         echo "-----END OPENSSH PRIVATE KEY-----"  >> /home/aur/.ssh/id_ed25519
         chmod 600 /home/aur/.ssh/id_ed25519 /home/aur/.ssh/known_hosts
       shell: bash
