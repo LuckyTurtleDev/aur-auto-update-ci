@@ -98,7 +98,7 @@ where
 {
 	use std::process::Command;
 	let args = args;
-	print!("run: {program}");
+	print!("Run {program}");
 	for arg in args {
 		print!(" {arg}");
 	}
