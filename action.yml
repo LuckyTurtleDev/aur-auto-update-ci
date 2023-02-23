@@ -25,6 +25,7 @@ runs:
         echo "-----BEGIN OPENSSH PRIVATE KEY-----" > /home/aur/.ssh/id_ed25519
         echo "${{ inputs.ssh_key }}"              >> /home/aur/.ssh/id_ed25519
         echo "-----END OPENSSH PRIVATE KEY-----"  >> /home/aur/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ecdsa ~/.ssh/known_hosts
       shell: bash
     - uses: actions/cache@v3
       with:
