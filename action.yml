@@ -6,6 +6,14 @@ inputs:
   ssh_key:
     description: "ed25519 ssh key of an aur user with write acces to the aur packages"
     required: true
+  git_user_name:
+    description: "git username for commits"
+    required: false
+    default: 'CI'
+  git_user_email:
+    description: "git email for commits"
+    required: false
+    default: 'NONE'
 
 runs:
   using: "composite"
@@ -36,6 +44,10 @@ runs:
           /home/aur/aur-auto-update-ci/target
         key: ${{ runner.os }}-cargo-${{ hashFiles('/home/aur/aur-auto-update-ci/Cargo.lock') }}
     - run: chown -R aur:aur /home/aur #fix (cache) permissions
+      shell: bash
+    - run: |
+        su aur --comand "git config --global user.name ${{ inputs.git_user_name }}"
+        su aur --comand "git config --global user.email ${{ inputs.git_user_name }}"
       shell: bash
     - run: su aur --command "cargo run --release -- ${{ inputs.packages }}"
       working-directory: /home/aur/aur-auto-update-ci
