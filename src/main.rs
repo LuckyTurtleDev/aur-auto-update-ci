@@ -87,7 +87,7 @@ fn main() {
 		println!();
 	}
 	if error != 0 {
-		eprintln!("{error} have occurred");
+		eprintln!("failed to process {error} packages");
 		exit(1);
 	}
 }
@@ -115,7 +115,7 @@ where
 		output
 	};
 	if !output.status.success() {
-		bail!("{program:?} has exit with exit code {}", output.status);
+		bail!("{program:?} has exit with {}", output.status);
 	}
 	Ok(output.stdout)
 }
