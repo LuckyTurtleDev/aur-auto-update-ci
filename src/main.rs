@@ -4,7 +4,6 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use srcinfo::Srcinfo;
 use std::{
-	ffi::OsStr,
 	fs,
 	fs::create_dir_all,
 	io,
@@ -93,13 +92,17 @@ fn main() {
 	}
 }
 
-fn run<P, S>(program: &str, args: Option<&[S]>, dir: P, show_output: bool) -> anyhow::Result<Vec<u8>>
+fn run<P>(program: &str, args: &[&str], dir: P, show_output: bool) -> anyhow::Result<Vec<u8>>
 where
 	P: AsRef<Path>,
-	S: AsRef<OsStr>,
 {
 	use std::process::Command;
-	let args: &[S] = args.unwrap_or_default();
+	let args = args;
+	print!("run: {program}");
+	for arg in args {
+		print!(" {arg}");
+	}
+	println!();
 	let mut command = Command::new(program);
 	let command = command.current_dir(dir).args(args);
 	let output = if show_output {
@@ -127,11 +130,11 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 		create_dir_all("aur")?;
 		run(
 			"git",
-			Some(&[
+			&[
 				"clone",
 				&format!("ssh://aur@aur.archlinux.org/{package}.git"),
 				dir.to_str().unwrap(),
-			]),
+			],
 			".",
 			true,
 		)?;
@@ -197,10 +200,10 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	fs::write(dir.join("PKGBUILD"), pkgbuild).with_context(|| "failed to write PKGGBUILD")?;
 
 	println!("-> updpkgsums");
-	run::<_, &str>("updpkgsums", None, &dir, true)?;
+	run("updpkgsums", &[], &dir, true)?;
 
 	println!("-> makepkg --printsrcinfo");
-	let stdout = run("makepkg", Some(&["--printsrcinfo"]), &dir, false)?;
+	let stdout = run("makepkg", &["--printsrcinfo"], &dir, false)?;
 	let pkgver = Srcinfo::parse_buf(&*stdout)
 		.with_context(|| "failed to prase .SRCINFO")?
 		.base
@@ -211,7 +214,7 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	fs::write(dir.join(".SRCINFO"), stdout).with_context(|| "failed to write .SRCINFO")?;
 
 	println!("-> makepkg");
-	run("makepkg", Some(&["--syncdeps", "--check", "--noarchive"]), &dir, true)?;
+	run("makepkg", &["--syncdeps", "--check", "--noarchive"], &dir, true)?;
 
 	println!("-> write index.json");
 	let mut new_index = index;
@@ -222,16 +225,16 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	if !opt.dryrun {
 		println!("-> git commit");
 		//gitoxide has not impl this yet
-		run("git", Some(&["add", ".index.json", "PKGBUILD", ".SRCINFO"]), &dir, true)?;
+		run("git", &["add", ".index.json", "PKGBUILD", ".SRCINFO"], &dir, true)?;
 		run(
 			"git",
-			Some(&["commit", "--message", &format!("auto update to {pkgver}"), "."]),
+			&["commit", "--message", &format!("auto update to {pkgver}"), "."],
 			&dir,
 			true,
 		)?;
 
 		println!("-> git push");
-		run("git", Some(&["push"]), &dir, true)?;
+		run("git", &["push"], &dir, true)?;
 	}
 	Ok(())
 }
