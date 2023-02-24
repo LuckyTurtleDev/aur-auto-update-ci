@@ -1,0 +1,54 @@
+name: 'aur auto update'
+inputs:
+  packages:
+    description: 'packages to be updated'
+    required: true
+  ssh_key:
+    description: "ed25519 ssh key of an aur user with write acces to the aur packages, without -BEGIN/END OPENSSH PRIVATE KEY- and without newlines"
+    required: true
+  git_user_name:
+    description: "git username for commits"
+    required: false
+    default: 'CI'
+  git_user_email:
+    description: "git email for commits"
+    required: false
+    default: 'NONE'
+
+runs:
+  using: "composite"
+  steps:
+    - run: sudo pacman -Suy --noconfirm git openssh pacman-contrib rust sudo
+      shell: bash
+    - run: |
+        useradd -m -U aur
+        echo "aur ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/user
+      shell: bash
+    - run: git clone https://github.com/LuckyTurtleDev/aur-auto-update-ci.git
+      working-directory: /home/aur
+      shell: bash
+    - run: mkdir /home/aur/.ssh && cp /home/aur/aur-auto-update-ci/aur_known_hosts /home/aur/.ssh/known_hosts
+      shell: bash
+    - run: |
+        echo "-----BEGIN OPENSSH PRIVATE KEY-----" > /home/aur/.ssh/id_ed25519
+        echo "${{ inputs.ssh_key }}"              >> /home/aur/.ssh/id_ed25519
+        echo "-----END OPENSSH PRIVATE KEY-----"  >> /home/aur/.ssh/id_ed25519
+        chmod 600 /home/aur/.ssh/id_ed25519 /home/aur/.ssh/known_hosts
+      shell: bash
+    - uses: actions/cache@v3
+      with:
+        path: |
+          /home/aur/.cargo/registry/index/
+          /home/aur/.cargo/registry/cache/
+          /home/aur/.cargo/git/db/
+          /home/aur/aur-auto-update-ci/target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('/home/aur/aur-auto-update-ci/Cargo.lock') }}
+    - run: chown -R aur:aur /home/aur #fix (cache) permissions
+      shell: bash
+    - run: |
+        su aur --command "git config --global user.name ${{ inputs.git_user_name }}"
+        su aur --command "git config --global user.email ${{ inputs.git_user_name }}"
+      shell: bash
+    - run: su aur --command "cargo run --release -- ${{ inputs.packages }}"
+      working-directory: /home/aur/aur-auto-update-ci
+      shell: bash
