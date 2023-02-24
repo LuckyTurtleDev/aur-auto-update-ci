@@ -1,0 +1,17 @@
+name: update
+
+on:
+  push:
+  schedule:
+    - cron:  '0 */11 * * *'
+
+jobs:
+  update_packages:
+    runs-on: ubuntu-latest
+    container: archlinux/archlinux:base-devel
+    steps:
+      - uses: LuckyTurtleDev/aur-auto-update-ci@action
+        with:
+          packages: commander-wars
+          ssh_key: ${{ secrets.SSH_KEY_ED25519 }}
+          git_user_name: LuckyTurtleCI
