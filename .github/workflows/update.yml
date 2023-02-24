@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     container: archlinux/archlinux:base-devel
     steps:
-      - uses: LuckyTurtleDev/aur-auto-update-ci@action
+      - uses: LuckyTurtleDev/aur-auto-update-ci@main
         with:
           packages: commander-wars
           ssh_key: ${{ secrets.SSH_KEY_ED25519 }}
