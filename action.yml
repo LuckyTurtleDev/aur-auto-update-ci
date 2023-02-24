@@ -49,6 +49,6 @@ runs:
         su aur --command "git config --global user.name ${{ inputs.git_user_name }}"
         su aur --command "git config --global user.email ${{ inputs.git_user_name }}"
       shell: bash
-    - run: su aur --command "cargo run --release -- ${{ inputs.packages }}"
+    - run: su aur --command "cargo run --release -- --noconfirm ${{ inputs.packages }}"
       working-directory: /home/aur/aur-auto-update-ci
       shell: bash

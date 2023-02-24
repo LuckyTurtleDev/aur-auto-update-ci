@@ -62,17 +62,21 @@ struct Opt {
 	#[clap(required = true)]
 	packages: Vec<String>,
 
-	/// run at local directory instead
-	#[clap(short = 'l', long)]
+	/// Treat <PACKAGES> like folders which inculde a PKGBUILD, instead cloning the aur repos which are associated with the packages.
+	#[clap(short, long)]
 	local: bool,
 
-	/// Does not commit or push changes
-	#[clap(short = 'd', long)]
+	/// Do not commit or push changes.
+	#[clap(short, long)]
 	dryrun: bool,
 
-	/// force run, even if no update is aviable
-	#[clap(short = 'f', long)]
+	/// Force run, even if no update is aviable.
+	#[clap(short, long)]
 	force: bool,
+
+	/// Do not ask for confirmation when resolving dependencie.
+	#[clap(short, long)]
+	noconfirm: bool,
 }
 
 fn main() {
@@ -92,7 +96,7 @@ fn main() {
 	}
 }
 
-fn run<P>(program: &str, args: &[&str], dir: P, show_output: bool) -> anyhow::Result<Vec<u8>>
+fn run<P>(program: &str, args: &Vec<&str>, dir: P, show_output: bool) -> anyhow::Result<Vec<u8>>
 where
 	P: AsRef<Path>,
 {
@@ -130,7 +134,7 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 		create_dir_all("aur")?;
 		run(
 			"git",
-			&[
+			&vec![
 				"clone",
 				&format!("ssh://aur@aur.archlinux.org/{package}.git"),
 				dir.to_str().unwrap(),
@@ -200,10 +204,10 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	fs::write(dir.join("PKGBUILD"), pkgbuild).with_context(|| "failed to write PKGGBUILD")?;
 
 	println!("-> updpkgsums");
-	run("updpkgsums", &[], &dir, true)?;
+	run("updpkgsums", &vec![], &dir, true)?;
 
 	println!("-> makepkg --printsrcinfo");
-	let stdout = run("makepkg", &["--printsrcinfo"], &dir, false)?;
+	let stdout = run("makepkg", &vec!["--printsrcinfo"], &dir, false)?;
 	let pkgver = Srcinfo::parse_buf(&*stdout)
 		.with_context(|| "failed to prase .SRCINFO")?
 		.base
@@ -214,7 +218,11 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	fs::write(dir.join(".SRCINFO"), stdout).with_context(|| "failed to write .SRCINFO")?;
 
 	println!("-> makepkg");
-	run("makepkg", &["--syncdeps", "--check", "--noarchive"], &dir, true)?;
+	let mut args = vec!["--syncdeps", "--check", "--noarchive"];
+	if opt.noconfirm {
+		args.push("--noconfirm");
+	}
+	run("makepkg", &args, &dir, true)?;
 
 	println!("-> write index.json");
 	let mut new_index = index;
@@ -225,16 +233,16 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	if !opt.dryrun {
 		println!("-> git commit");
 		//gitoxide has not impl this yet
-		run("git", &["add", ".index.json", "PKGBUILD", ".SRCINFO"], &dir, true)?;
+		run("git", &vec!["add", ".index.json", "PKGBUILD", ".SRCINFO"], &dir, true)?;
 		run(
 			"git",
-			&["commit", "--message", &format!("auto update to {pkgver}"), "."],
+			&vec!["commit", "--message", &format!("auto update to {pkgver}"), "."],
 			&dir,
 			true,
 		)?;
 
 		println!("-> git push");
-		run("git", &["push"], &dir, true)?;
+		run("git", &vec!["push"], &dir, true)?;
 	}
 	Ok(())
 }
