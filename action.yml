@@ -42,7 +42,7 @@ runs:
           /home/aur/.cargo/registry/cache/
           /home/aur/.cargo/git/db/
           /home/aur/aur-auto-update-ci/target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('/home/aur/aur-auto-update-ci/Cargo.lock') }}
+        key: arch-docker-${{ runner.os }}-cargo-${{ hashFiles('/home/aur/aur-auto-update-ci/Cargo.lock') }}
     - run: chown -R aur:aur /home/aur #fix (cache) permissions
       shell: bash
     - run: |
