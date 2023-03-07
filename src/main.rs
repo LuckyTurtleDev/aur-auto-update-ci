@@ -27,12 +27,14 @@ trait Tags {
 #[serde(tag = "type", rename_all = "snake_case")]
 enum Source {
 	GithubRelease(github::GithubRelease),
+	GithubTag(github::GithubTag),
 }
 
 impl Tags for Source {
 	fn get_tags(&self) -> anyhow::Result<Vec<String>> {
 		match self {
 			Self::GithubRelease(value) => value.get_tags(),
+			Self::GithubTag(value) => value.get_tags(),
 		}
 	}
 }
