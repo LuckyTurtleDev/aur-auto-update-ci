@@ -36,3 +36,25 @@ impl Tags for GithubRelease {
 			.collect())
 	}
 }
+
+#[derive(Debug, Default, Deserialize)]
+struct Tag {
+	name: String,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GithubTag {
+	repo: String,
+}
+
+impl Tags for GithubTag {
+	fn get_tags(&self) -> anyhow::Result<Vec<String>> {
+		println!("-> get tags from github tags");
+		let tags: Vec<Tag> = get(format!("https://api.github.com/repos/{}/tags", self.repo))
+			.send()?
+			.error_for_status()?
+			.json()?;
+		Ok(tags.into_iter().map(|f| f.name).collect())
+	}
+}
