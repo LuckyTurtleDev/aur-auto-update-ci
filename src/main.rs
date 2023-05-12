@@ -11,6 +11,7 @@ use std::{
 	process::exit,
 };
 
+mod crates_io;
 mod github;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -26,6 +27,7 @@ trait Tags {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum Source {
+	CratesIo(crates_io::CratesIoRelease),
 	GithubRelease(github::GithubRelease),
 	GithubTag(github::GithubTag),
 }
@@ -33,6 +35,7 @@ enum Source {
 impl Tags for Source {
 	fn get_tags(&self) -> anyhow::Result<Vec<String>> {
 		match self {
+			Self::CratesIo(value) => value.get_tags(),
 			Self::GithubRelease(value) => value.get_tags(),
 			Self::GithubTag(value) => value.get_tags(),
 		}
