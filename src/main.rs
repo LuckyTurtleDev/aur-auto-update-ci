@@ -212,11 +212,31 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 	run("updpkgsums", &vec![], &dir, true)?;
 
 	println!("-> makepkg --printsrcinfo");
-	let stdout = run("makepkg", &vec!["--printsrcinfo"], &dir, false)?;
+	let mut stdout = run("makepkg", &vec!["--printsrcinfo"], &dir, false)?;
 	let pkgver = Srcinfo::parse_buf(&*stdout)
 		.with_context(|| "failed to prase .SRCINFO")?
 		.base
 		.pkgver;
+	if old_pkgver.as_ref() != Some(&pkgver) {
+		println!("set pkgrel to 1 (pkgver has change)");
+		println!("-> modify PKGBUILD (again)");
+		let mut pkgbuild = "".to_owned();
+		for line in fs::read_to_string(dir.join("PKGBUILD"))
+			.with_context(|| "failed to open `PKGBUILD`")?
+			.split('\n')
+		{
+			if line.starts_with("pkgrel=") {
+				pkgbuild += &format!("pkgrel=1 #auto reset by CI");
+			} else {
+				pkgbuild += line;
+			}
+			pkgbuild += "\n";
+		}
+		pkgbuild.pop(); //avoid adding an additonal newline at file end
+		fs::write(dir.join("PKGBUILD"), pkgbuild).with_context(|| "failed to write PKGGBUILD")?;
+		println!("-> makepkg --printsrcinfo");
+		stdout = run("makepkg", &vec!["--printsrcinfo"], &dir, false)?;
+	}
 	if !pkgver_regex.is_match(&pkgver) {
 		bail!(format!("pkgver {pkgver:?} does not match regex {pkgver_regex}"));
 	};
