@@ -12,6 +12,6 @@ jobs:
     steps:
       - uses: LuckyTurtleDev/aur-auto-update-ci@main
         with:
-          packages: commander-wars crab-hole
+          packages: crab-hole
           ssh_key: ${{ secrets.SSH_KEY_ED25519 }}
           git_user_name: LuckyTurtleCI
