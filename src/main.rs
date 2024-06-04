@@ -64,12 +64,12 @@ fn main() {
 	let opt = Opt::parse();
 	let mut error = 0;
 	for package in &opt.packages {
+		println!("::group::process package: {}", package);
 		if let Err(err) = progess_package(package, &opt) {
 			eprintln!("{:?}", err.context(format!("ERROR processing package {package}")));
 			error += 1;
 		}
-		println!();
-		println!();
+		println!("::endgroup::");
 	}
 	if error != 0 {
 		eprintln!("failed to process {error} packages");
