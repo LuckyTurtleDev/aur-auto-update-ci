@@ -1,7 +1,6 @@
 use anyhow::{bail, Context};
 use clap::Parser;
-use package_version::Sources;
-use package_version::Source;
+use package_version::{Source, Sources};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use srcinfo::Srcinfo;
@@ -13,13 +12,11 @@ use std::{
 	process::exit,
 };
 
-
 #[derive(Debug, Default, Deserialize, Serialize)]
 struct Index {
 	#[serde(default)]
 	tag: String,
 }
-
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
