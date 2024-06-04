@@ -29,7 +29,7 @@ runs:
     # So we app helper to switch to the aur user again
     - run: |
         echo 'sudo -u aur -- yay "${@}"' >/usr/local/bin/aurhelper;
-	      chmod +x /usr/local/bin/aurhelper
+	chmod +x /usr/local/bin/aurhelper
       shell: bash
     - run: git clone https://github.com/LuckyTurtleDev/aur-auto-update-ci.git
       working-directory: /home/aur
