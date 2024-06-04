@@ -42,6 +42,13 @@ runs:
         echo "-----END OPENSSH PRIVATE KEY-----"  >> /home/aur/.ssh/id_ed25519
         chmod 600 /home/aur/.ssh/id_ed25519 /home/aur/.ssh/known_hosts
       shell: bash
+    - name: install yay
+      run: |
+	git clone https://aur.archlinux.org/yay.git; \
+	pushd yay; \
+	makepkg --noconfirm -si; \
+	popd; \
+	rm -r yay
     - uses: actions/cache@v3
       with:
         path: |
