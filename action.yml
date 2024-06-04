@@ -42,6 +42,8 @@ runs:
         echo "-----END OPENSSH PRIVATE KEY-----"  >> /home/aur/.ssh/id_ed25519
         chmod 600 /home/aur/.ssh/id_ed25519 /home/aur/.ssh/known_hosts
       shell: bash
+    - run: chown -R aur:aur /home/aur #fix (cache) permissions
+      shell: bash
     - name: install yay
       run: |
         git clone https://aur.archlinux.org/yay.git
@@ -58,8 +60,6 @@ runs:
           /home/aur/.cargo/git/db/
           /home/aur/aur-auto-update-ci/target
         key: arch-docker-${{ runner.os }}-cargo-${{ hashFiles('/home/aur/aur-auto-update-ci/Cargo.lock') }}
-    - run: chown -R aur:aur /home/aur #fix (cache) permissions
-      shell: bash
     - run: |
         su aur --command "git config --global user.name ${{ inputs.git_user_name }}"
         su aur --command "git config --global user.email ${{ inputs.git_user_name }}"
