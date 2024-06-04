@@ -7,9 +7,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.69"
-attohttpc = { version = "0.24.1", default-features = false, features = ["json", "tls-rustls-webpki-roots"] }
+attohttpc = { version = "0.28.0", default-features = false, features = ["json", "tls-rustls-webpki-roots"] }
 basic-toml = "0.1.1"
 clap = { version = "4.1.6", features = ["derive"] }
+package-version = { git = "https://github.com/LuckyTurtleDev/package-version.git", version = "0.1.0" }
 regex = "1.7.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.93"

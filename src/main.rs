@@ -1,5 +1,7 @@
 use anyhow::{bail, Context};
 use clap::Parser;
+use package_version::Sources;
+use package_version::Source;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use srcinfo::Srcinfo;
@@ -11,8 +13,6 @@ use std::{
 	process::exit,
 };
 
-mod crates_io;
-mod github;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 struct Index {
@@ -20,27 +20,6 @@ struct Index {
 	tag: String,
 }
 
-trait Tags {
-	fn get_tags(&self) -> anyhow::Result<Vec<String>>;
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-enum Source {
-	CratesIo(crates_io::CratesIoRelease),
-	GithubRelease(github::GithubRelease),
-	GithubTag(github::GithubTag),
-}
-
-impl Tags for Source {
-	fn get_tags(&self) -> anyhow::Result<Vec<String>> {
-		match self {
-			Self::CratesIo(value) => value.get_tags(),
-			Self::GithubRelease(value) => value.get_tags(),
-			Self::GithubTag(value) => value.get_tags(),
-		}
-	}
-}
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -56,7 +35,7 @@ fn default_pkgver_regex() -> String {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Config {
-	source: Source,
+	source: Sources,
 	#[serde(default)]
 	check: Check,
 }
@@ -187,7 +166,7 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 
 	println!("tags: {tags:?}");
 	let tag = tags.first().expect("no suitable tag found");
-	if &index.tag == tag && !opt.force {
+	if index.tag == tag.version && !opt.force {
 		println!("package is already uptodate");
 		return Ok(());
 	}
@@ -199,7 +178,7 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 		.split('\n')
 	{
 		if line.starts_with("_pkgtag=") {
-			pkgbuild += &format!("_pkgtag={tag} #auto updated by CI");
+			pkgbuild += &format!("_pkgtag={} #auto updated by CI", tag.version);
 		} else {
 			pkgbuild += line;
 		}
@@ -251,7 +230,7 @@ fn progess_package(package: &str, opt: &Opt) -> anyhow::Result<()> {
 
 	println!("-> write index.json");
 	let mut new_index = index;
-	new_index.tag = tag.to_owned();
+	new_index.tag = tag.version.to_owned();
 	fs::write(dir.join(".index.json"), serde_json::to_string_pretty(&new_index)?)
 		.with_context(|| "failed to write .index.json")?;
 
