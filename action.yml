@@ -49,6 +49,7 @@ runs:
         makepkg --noconfirm -si; \
         popd; \
         rm -r yay
+      shell: bash
     - uses: actions/cache@v3
       with:
         path: |
@@ -64,6 +65,7 @@ runs:
         su aur --command "git config --global user.email ${{ inputs.git_user_name }}"
       shell: bash
     - run: su aur --command "cargo run --release -- --noconfirm ${{ inputs.packages }}"
-      env: PACMAN=aurhelper
+      env:
+        PACMAN: aurhelper
       working-directory: /home/aur/aur-auto-update-ci
       shell: bash
