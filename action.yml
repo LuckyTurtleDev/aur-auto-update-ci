@@ -44,10 +44,10 @@ runs:
       shell: bash
     - name: install yay
       run: |
-        git clone https://aur.archlinux.org/yay.git; \
-        pushd yay; \
-        su aur --command makepkg --noconfirm -si; \
-        popd; \
+        git clone https://aur.archlinux.org/yay.git
+        pushd yay
+        su aur --command "makepkg --noconfirm -si"
+        popd
         rm -r yay
       shell: bash
     - uses: actions/cache@v3
