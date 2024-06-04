@@ -29,7 +29,7 @@ runs:
     # So we app helper to switch to the aur user again
     - run: |
         echo 'sudo -u aur -- yay "${@}"' >/usr/local/bin/aurhelper;
-	chmod +x /usr/local/bin/aurhelper
+        chmod +x /usr/local/bin/aurhelper
       shell: bash
     - run: git clone https://github.com/LuckyTurtleDev/aur-auto-update-ci.git
       working-directory: /home/aur
@@ -44,11 +44,11 @@ runs:
       shell: bash
     - name: install yay
       run: |
-	git clone https://aur.archlinux.org/yay.git; \
-	pushd yay; \
-	makepkg --noconfirm -si; \
-	popd; \
-	rm -r yay
+        git clone https://aur.archlinux.org/yay.git; \
+        pushd yay; \
+        makepkg --noconfirm -si; \
+        popd; \
+        rm -r yay
     - uses: actions/cache@v3
       with:
         path: |
