@@ -24,6 +24,13 @@ runs:
         useradd -m -U aur
         echo "aur ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/user
       shell: bash
+    # to install aur deps, we use yay.
+    # Issue: makepkg will call yay with sudo, which will run makepkg as root -> boom
+    # So we app helper to switch to the aur user again
+    - run: |
+        echo 'sudo -u aur -- yay "${@}"' >/usr/local/bin/aurhelper;
+	      chmod +x /usr/local/bin/aurhelper
+      shell: bash
     - run: git clone https://github.com/LuckyTurtleDev/aur-auto-update-ci.git
       working-directory: /home/aur
       shell: bash
@@ -35,6 +42,13 @@ runs:
         echo "-----END OPENSSH PRIVATE KEY-----"  >> /home/aur/.ssh/id_ed25519
         chmod 600 /home/aur/.ssh/id_ed25519 /home/aur/.ssh/known_hosts
       shell: bash
+    - name: install yay
+      run: |
+	git clone https://aur.archlinux.org/yay.git; \
+	pushd yay; \
+	makepkg --noconfirm -si; \
+	popd; \
+	rm -r yay
     - uses: actions/cache@v3
       with:
         path: |
@@ -50,5 +64,6 @@ runs:
         su aur --command "git config --global user.email ${{ inputs.git_user_name }}"
       shell: bash
     - run: su aur --command "cargo run --release -- --noconfirm ${{ inputs.packages }}"
+      env: PACMAN=aurhelper
       working-directory: /home/aur/aur-auto-update-ci
       shell: bash
